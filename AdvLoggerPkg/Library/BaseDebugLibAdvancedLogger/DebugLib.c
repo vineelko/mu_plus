@@ -13,6 +13,7 @@
 
 #include <Uefi.h>
 #include <Base.h>
+#include <AutoGen.h>
 
 #include <AdvancedLoggerInternal.h>
 
@@ -146,6 +147,7 @@ DebugPrintMarker (
   )
 {
   CHAR8  Buffer[MAX_DEBUG_MESSAGE_LENGTH];
+  UINTN  PrefixLength;
 
   //
   // If Format is NULL, then ASSERT().
@@ -160,12 +162,17 @@ DebugPrintMarker (
   }
 
   //
+  // Start each buffer with the module prefix provided by AutoGen.
+  //
+  PrefixLength = AsciiSPrint (Buffer, sizeof (Buffer), "%a|", gModulePrefix);
+
+  //
   // Convert the DEBUG() message to an ASCII String
   //
   if (BaseListMarker == NULL) {
-    AsciiVSPrint (Buffer, sizeof (Buffer), Format, VaListMarker);
+    AsciiVSPrint (Buffer + PrefixLength, sizeof (Buffer) - PrefixLength, Format, VaListMarker);
   } else {
-    AsciiBSPrint (Buffer, sizeof (Buffer), Format, BaseListMarker);
+    AsciiBSPrint (Buffer + PrefixLength, sizeof (Buffer) - PrefixLength, Format, BaseListMarker);
   }
 
   //

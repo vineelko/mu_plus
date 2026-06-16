@@ -9,6 +9,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include <PiPei.h>
+#include <AutoGen.h>
 
 #include <AdvancedLoggerInternal.h>
 
@@ -19,10 +20,16 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DebugLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/PrintLib.h>
 #include <Library/ReportStatusCodeLib.h>
 #include <Library/PcdLib.h>
 #include <Library/DebugPrintErrorLevelLib.h>
 #include <Library/PeiServicesLib.h>
+
+//
+// Define the maximum debug message length that this library supports
+//
+#define MAX_DEBUG_MESSAGE_LENGTH  0x100
 
 /**
   Prints a debug message to the debug output device if the specified
@@ -49,6 +56,8 @@ DebugVPrint (
 {
   ADVANCED_LOGGER_PPI  *AdvLoggerPpi;
   EFI_STATUS           Status;
+  CHAR8                Buffer[MAX_DEBUG_MESSAGE_LENGTH];
+  UINTN                PrefixLength;
 
   //
   // If Format is NULL, then ASSERT().
@@ -69,7 +78,17 @@ DebugVPrint (
              (VOID **)&AdvLoggerPpi
              );
   if (Status == EFI_SUCCESS) {
-    AdvLoggerPpi->AdvancedLoggerPrintPpi (ErrorLevel, Format, VaListMarker);
+    //
+    // Format the message here, in the calling PEIM, so that gModulePrefix
+    // resolves to the module linked against this library instance.  The fully
+    // formatted buffer is then sent through the Write PPI to avoid the
+    // centralized Print PPI (hosted by PeiCore) re-formatting the message and
+    // applying PeiCore's module prefix instead of the caller's.
+    //
+    PrefixLength = AsciiSPrint (Buffer, sizeof (Buffer), "%a|", gModulePrefix);
+    AsciiVSPrint (Buffer + PrefixLength, sizeof (Buffer) - PrefixLength, Format, VaListMarker);
+
+    AdvLoggerPpi->AdvancedLoggerWritePpi (ErrorLevel, Buffer, AsciiStrnLenS (Buffer, sizeof (Buffer)));
   }
 }
 

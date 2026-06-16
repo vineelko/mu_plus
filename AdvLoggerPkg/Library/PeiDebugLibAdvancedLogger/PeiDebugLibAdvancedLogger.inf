@@ -25,6 +25,8 @@
 [LibraryClasses]
   PcdLib
   BaseLib
+  BaseMemoryLib
+  PrintLib
   DebugPrintErrorLevelLib
   PeiServicesLib
 
